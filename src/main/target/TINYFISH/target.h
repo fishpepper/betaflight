@@ -21,6 +21,9 @@
 
 #define TARGET_BOARD_IDENTIFIER "TFSH" // http://fishpepper.de/projects/tinyFISH
 
+#define OSD
+#define TINYOSD_UART           SERIAL_PORT_USART3
+
 
 #define LED0                    PC14
 #define LED1                    PC15

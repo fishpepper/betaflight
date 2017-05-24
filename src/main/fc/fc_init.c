@@ -58,6 +58,7 @@
 #include "drivers/transponder_ir.h"
 #include "drivers/exti.h"
 #include "drivers/vtx_soft_spi_rtc6705.h"
+#include "drivers/tinyosd.h"
 
 #ifdef USE_BST
 #include "bus_bst.h"
@@ -78,6 +79,8 @@
 
 #include "io/beeper.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_tinyosd.h"
+
 #include "io/serial.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -391,6 +394,13 @@ void init(void)
     }
 #endif
 
+#if 1
+    displayPort_t *osdDisplayPort = NULL;
+    osdDisplayPort = tinyOSDDisplayPortInit(vcdProfile());
+    osdInit(osdDisplayPort);
+
+#else
+
 #ifdef OSD
     if (feature(FEATURE_OSD)) {
 #ifdef USE_MAX7456
@@ -402,7 +412,7 @@ void init(void)
         osdInit(osdDisplayPort);
     }
 #endif
-
+#endif
 #ifdef SONAR
     const sonarConfig_t *sonarConfig = sonarConfig();
 #else

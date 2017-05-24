@@ -70,7 +70,7 @@
 
 // Character coordinate
 
-#define OSD_POS(x,y)  (x | (y << 5))
+#define OSD_POS(x,y)  ((x) | ((y) << 5))
 #define OSD_X(x)      (x & 0x001F)
 #define OSD_Y(x)      ((x >> 5) & 0x001F)
 
@@ -274,7 +274,7 @@ static void osdDrawSingleElement(uint8_t item)
 #endif // VTX
 
         case OSD_CROSSHAIRS:
-            elemPosX = 14 - 1; // Offset for 1 char to the left
+            elemPosX = 35/2 - 1; // Offset for 1 char to the left
             elemPosY = 6;
             if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
                 ++elemPosY;
@@ -456,6 +456,14 @@ void osdDrawElements(void)
 
 void osdResetConfig(osd_profile_t *osdProfile)
 {
+#if 1
+    osdProfile->item_pos[OSD_FLYTIME] = OSD_POS(22+6, 12) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_MAH_DRAWN] = OSD_POS(22+6, 11) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_CROSSHAIRS] = OSD_POS(13, 6) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_CURRENT_DRAW] = OSD_POS(0, 12) | VISIBLE_FLAG;
+    osdProfile->item_pos[OSD_MAIN_BATT_VOLTAGE] = OSD_POS(0, 11) | VISIBLE_FLAG;
+#else
+
     osdProfile->item_pos[OSD_RSSI_VALUE] = OSD_POS(22, 0);
     osdProfile->item_pos[OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | VISIBLE_FLAG;
     osdProfile->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | VISIBLE_FLAG;
@@ -477,6 +485,7 @@ void osdResetConfig(osd_profile_t *osdProfile)
     osdProfile->item_pos[OSD_POWER] = OSD_POS(15, 1);
     osdProfile->item_pos[OSD_PIDRATE_PROFILE] = OSD_POS(2, 13);
     osdProfile->item_pos[OSD_MAIN_BATT_WARNING] = OSD_POS(8, 6);
+#endif
 
     osdProfile->rssi_alarm = 20;
     osdProfile->cap_alarm = 2200;
@@ -657,7 +666,7 @@ static void osdShowStats(void)
 static void osdArmMotors(void)
 {
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, 7, "ARMED");
+    displayWrite(osdDisplayPort, 12+5, 7, "ARMED");
     refreshTimeout = REFRESH_1S / 2;
     osdResetStats();
 }
