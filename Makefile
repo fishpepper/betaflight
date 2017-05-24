@@ -586,6 +586,7 @@ COMMON_SRC = \
             drivers/stack_check.c \
             drivers/system.c \
             drivers/timer.c \
+            drivers/tinyosd.c \
             fc/config.c \
             fc/fc_init.c \
             fc/fc_dispatch.c \
@@ -658,6 +659,7 @@ HIGHEND_SRC = \
             flight/gps_conversion.c \
             io/dashboard.c \
             io/displayport_max7456.c \
+            io/displayport_tinyosd.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
             io/gps.c \
@@ -753,6 +755,7 @@ SPEED_OPTIMISED_SRC := $(SPEED_OPTIMISED_SRC) \
             drivers/serial_softserial.c \
             io/dashboard.c \
             io/displayport_max7456.c \
+            io/displayport_tinyosd.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
             io/ledstrip.c \

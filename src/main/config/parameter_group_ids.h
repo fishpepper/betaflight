@@ -70,6 +70,9 @@
 #define PG_DRIVER_PWM_RX_CONFIG 100 // does not exist in betaflight
 #define PG_DRIVER_FLASHCHIP_CONFIG 101 // does not exist in betaflight
 
+#define PG_DISPLAY_PORT_TINYOSD_CONFIG 517
+
+
 // OSD configuration (subject to change)
 #define PG_OSD_FONT_CONFIG 2047
 #define PG_OSD_VIDEO_CONFIG 2046
