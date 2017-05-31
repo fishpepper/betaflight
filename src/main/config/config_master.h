@@ -214,18 +214,21 @@ typedef struct master_s {
     uint8_t vtx_power;
 #endif
 
-#ifdef OSD
+//#ifdef OSD
+#if 1
     osd_profile_t osdProfile;
 #endif
 
-#ifdef USE_MAX7456
+//#ifdef USE_MAX7456
+#if 1
     vcdProfile_t vcdProfile;
 #endif
 
 # ifdef USE_MSP_DISPLAYPORT
     displayPortProfile_t displayPortProfileMsp;
 # endif
-# ifdef USE_MAX7456
+//# ifdef USE_MAX7456
+#if 1
     displayPortProfile_t displayPortProfileMax7456;
 # endif
 

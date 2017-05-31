@@ -666,7 +666,7 @@ static void osdShowStats(void)
 static void osdArmMotors(void)
 {
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12+5, 7, "ARMED");
+    displayWrite(osdDisplayPort, 12+3, 7, "ARMED");
     refreshTimeout = REFRESH_1S / 2;
     osdResetStats();
 }
