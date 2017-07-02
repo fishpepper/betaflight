@@ -391,10 +391,21 @@ TEST(OsdTest, TestAlarms)
 
     // and
     // the following OSD elements are visible
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE]        = OSD_POS(8, 1)  | VISIBLE_FLAG;
-    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 1) | VISIBLE_FLAG;
-    osdConfigMutable()->item_pos[OSD_FLYTIME]           = OSD_POS(1, 1)  | VISIBLE_FLAG;
-    osdConfigMutable()->item_pos[OSD_ALTITUDE]          = OSD_POS(23, 7) | VISIBLE_FLAG;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][0] = 8;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][1] = 1;
+    osdConfigMutable()->visible[OSD_RSSI_VALUE] = true;
+
+    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE][0] = 12;
+    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE][1] = 1;
+    osdConfigMutable()->visible[OSD_MAIN_BATT_VOLTAGE] = true;
+
+    osdConfigMutable()->item_pos[OSD_FLYTIME][0] = 1;
+    osdConfigMutable()->item_pos[OSD_FLYTIME][1] = 1;
+    osdConfigMutable()->visible[OSD_FLYTIME] = true;        
+
+    osdConfigMutable()->item_pos[OSD_ALTITUDE][0] = 23;
+    osdConfigMutable()->item_pos[OSD_ALTITUDE][1] = 7;
+    osdConfigMutable()->visible[OSD_ALTITUDE] = true;
 
     // and
     // this set of alarm values
@@ -467,7 +478,9 @@ TEST(OsdTest, TestAlarms)
 TEST(OsdTest, TestElementRssi)
 {
     // given
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE] = OSD_POS(8, 1) | VISIBLE_FLAG;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][0] = 8;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][1] = 1;
+    osdConfigMutable()->visible[OSD_RSSI_VALUE] = true;
     osdConfigMutable()->rssi_alarm = 0;
 
     // when
