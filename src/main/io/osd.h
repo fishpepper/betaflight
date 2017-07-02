@@ -34,14 +34,6 @@
 //#define OSD_X(x)      (x & OSD_POSITION_XY_MASK)
 //#define OSD_Y(x)      ((x >> OSD_POSITION_BITS) & OSD_POSITION_XY_MASK)
 
-#define OSD_INIT_CONFIG_ITEM(config, item, pos_x, pos_y, visible) { }
-/*\
-    config->item_pos[item][0] = pos_x; \
-    config->item_pos[item][1] = pos_y; \
-    config->visible[item]    = visible; \
-}*/
-
-
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
