@@ -28,11 +28,19 @@
 
 // Character coordinate
 
-#define OSD_POSITION_BITS 5 // 5 bits gives a range 0-31
-#define OSD_POSITION_XY_MASK ((1 << OSD_POSITION_BITS) - 1)
-#define OSD_POS(x,y)  ((x & OSD_POSITION_XY_MASK) | ((y & OSD_POSITION_XY_MASK) << OSD_POSITION_BITS))
-#define OSD_X(x)      (x & OSD_POSITION_XY_MASK)
-#define OSD_Y(x)      ((x >> OSD_POSITION_BITS) & OSD_POSITION_XY_MASK)
+//#define OSD_POSITION_BITS 5 // 5 bits gives a range 0-31
+//#define OSD_POSITION_XY_MASK ((1 << OSD_POSITION_BITS) - 1)
+//#define OSD_POS(x,y)  {(x), (y)}
+//#define OSD_X(x)      (x & OSD_POSITION_XY_MASK)
+//#define OSD_Y(x)      ((x >> OSD_POSITION_BITS) & OSD_POSITION_XY_MASK)
+
+#define OSD_INIT_CONFIG_ITEM(config, item, pos_x, pos_y, visible) { }
+/*\
+    config->item_pos[item][0] = pos_x; \
+    config->item_pos[item][1] = pos_y; \
+    config->visible[item]    = visible; \
+}*/
+
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -98,7 +106,8 @@ typedef enum {
 } osd_unit_e;
 
 typedef struct osdConfig_s {
-    uint16_t item_pos[OSD_ITEM_COUNT];
+    uint8_t item_pos[OSD_ITEM_COUNT][2];
+    bool visible[OSD_ITEM_COUNT];
     bool enabled_stats[OSD_STAT_COUNT];
 
     // Alarms

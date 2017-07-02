@@ -846,7 +846,12 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
         sbufWriteU16(dst, osdConfig()->time_alarm);
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[i]);
+            //FIXME: this should be changed to separate x, y, and visibility
+            uint16_t tmp;
+            tmp  = (osdConfig()->item_pos[i][0] & ((1 << 5) - 1));
+            tmp |= (osdConfig()->item_pos[i][1] << 5);
+            if (osdConfig()->visible[i]) tmp |= 0x0800;
+            sbufWriteU16(dst, tmp);
         }
         for (int i = 0; i < OSD_STAT_COUNT; i++ ) {
             sbufWriteU8(dst, osdConfig()->enabled_stats[i]);
@@ -2171,7 +2176,13 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                     osdConfigMutable()->enabled_stats[addr] = value;
                 } else if (addr < OSD_ITEM_COUNT) {
                     /* Set element positions */
-                    osdConfigMutable()->item_pos[addr] = value;
+                    //FIXME: this should be changed to separate x and y transfer?!
+                    uint8_t x = (value & ((1 << 5) - 1));
+                    uint8_t y = ((value >> 5) & ((1 << 5) - 1));
+                    uint8_t visible = (value & 0x0800) ? 1 : 0;
+                    osdConfigMutable()->item_pos[addr][0] = x;
+                    osdConfigMutable()->item_pos[addr][1] = y;
+                    osdConfigMutable()->visible[addr]     = visible;
                 }
 #else
                 return MSP_RESULT_ERROR;
