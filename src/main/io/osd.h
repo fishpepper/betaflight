@@ -97,8 +97,23 @@ typedef enum {
     OSD_UNIT_METRIC
 } osd_unit_e;
 
+typedef enum {
+    OSD_ORIGIN_UL,
+    OSD_ORIGIN_UR,
+    OSD_ORIGIN_LR,
+    OSD_ORIGIN_LL,
+    OSD_ORIGIN_C
+} osd_origin_e;
+
+typedef struct {
+    int8_t x;
+    int8_t y;
+    osd_origin_e origin;
+} osdItemPos_t;
+
 typedef struct osdConfig_s {
-    uint8_t item_pos[OSD_ITEM_COUNT][2];
+    osdItemPos_t item_pos[OSD_ITEM_COUNT];
+
     bool visible[OSD_ITEM_COUNT];
     bool enabled_stats[OSD_STAT_COUNT];
 

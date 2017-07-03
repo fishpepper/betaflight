@@ -233,10 +233,49 @@ static void osdDrawSingleElement(uint8_t item)
         return;
     }
 
-    uint8_t elemPosX = osdConfig()->item_pos[item][0];
-    uint8_t elemPosY = osdConfig()->item_pos[item][1];
-    uint8_t elemOffsetX = 0;
     char buff[32];
+
+    // output display dimensions
+    uint8_t display_width  = osdDisplayPort->colCount - 1;
+    uint8_t display_height = osdDisplayPort->rowCount - 1;
+
+    // x/y position (note: might need origin offset, see below)
+    int8_t elemPosX = osdConfig()->item_pos[item].x;
+    int8_t elemPosY = osdConfig()->item_pos[item].y;
+
+    // calculate absolute position based on origin
+    switch (osdConfig()->item_pos[item].origin) {
+        default:
+        case(OSD_ORIGIN_UL):
+            // origin is upper left
+            break;
+
+        case(OSD_ORIGIN_UR):
+            // origin is upper right
+            elemPosX += display_width;
+            break;
+
+        case(OSD_ORIGIN_LR):
+            // origin is lower right
+            elemPosX += display_width;
+            elemPosY += display_height;
+            break;
+
+        case(OSD_ORIGIN_LL):
+            // origin is lower left
+            elemPosY += display_height;
+            break;
+
+        case(OSD_ORIGIN_C):
+            // origin is center
+            elemPosX += display_width / 2;
+            elemPosY += display_height / 2;
+            break;
+    }
+
+    // make sure to have valid x/y positions [0..max]
+    elemPosX = MAX(0, MIN(display_width, elemPosX));
+    elemPosY = MAX(0, MIN(display_height, elemPosY));
 
     switch (item) {
     case OSD_RSSI_VALUE:
@@ -422,11 +461,6 @@ static void osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_CROSSHAIRS:
-        elemPosX = 14 - 1; // Offset for 1 char to the left
-        elemPosY = 6;
-        if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-            ++elemPosY;
-        }
         buff[0] = SYM_AH_CENTER_LINE;
         buff[1] = SYM_AH_CENTER;
         buff[2] = SYM_AH_CENTER_LINE_RIGHT;
@@ -435,15 +469,8 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            elemPosX = 14;
-            elemPosY = 6 - 4; // Top center of the AH area
-
             const int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
             int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
-
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-                ++elemPosY;
-            }
 
             // Convert pitchAngle to y compensation value
             pitchAngle = (pitchAngle / 8) - 41; // 41 = 4 * 9 + 5
@@ -464,13 +491,6 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_HORIZON_SIDEBARS:
         {
-            elemPosX = 14;
-            elemPosY = 6;
-
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-                ++elemPosY;
-            }
-
             // Draw AH sides
             const int8_t hudwidth = AH_SIDEBAR_WIDTH_POS;
             const int8_t hudheight = AH_SIDEBAR_HEIGHT_POS;
@@ -627,7 +647,7 @@ static void osdDrawSingleElement(uint8_t item)
         return;
     }
 
-    displayWrite(osdDisplayPort, elemPosX + elemOffsetX, elemPosY, buff);
+    displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
 }
 
 static void osdDrawElements(void)
@@ -693,157 +713,94 @@ static void osdDrawElements(void)
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
-    osdConfig->item_pos[OSD_RSSI_VALUE][0] = 8;
-    osdConfig->item_pos[OSD_RSSI_VALUE][1] = 1;
-    osdConfig->visible[OSD_RSSI_VALUE]     = true;
 
-    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE][0] = 12;
-    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE][1] = 1;
-    osdConfig->visible[OSD_MAIN_BATT_VOLTAGE]     = true;
+    osdConfig->item_pos[OSD_RSSI_VALUE]         = (osdItemPos_t) {  8,  1, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = (osdItemPos_t) { 12,  1, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_CROSSHAIRS]         = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ONTIME]             = (osdItemPos_t) { 22,  1, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_FLYTIME]            = (osdItemPos_t) {  1,  1, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_FLYMODE]            = (osdItemPos_t) { 13, 10, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_CRAFT_NAME]         = (osdItemPos_t) { 10, 11, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_THROTTLE_POS]       = (osdItemPos_t) {  1,  7, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_VTX_CHANNEL]        = (osdItemPos_t) { 25, 11, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_CURRENT_DRAW]       = (osdItemPos_t) {  1, 12, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_MAH_DRAWN]          = (osdItemPos_t) {  1, 11, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_GPS_SPEED]          = (osdItemPos_t) { 26,  6, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_GPS_SATS]           = (osdItemPos_t) { 19,  1, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ALTITUDE]           = (osdItemPos_t) { 23,  7, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ROLL_PIDS]          = (osdItemPos_t) {  7, 13, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_PITCH_PIDS]         = (osdItemPos_t) {  7, 14, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_YAW_PIDS]           = (osdItemPos_t) {  5, 15, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_POWER]              = (osdItemPos_t) {  1, 10, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_PIDRATE_PROFILE]    = (osdItemPos_t) { 25, 10, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_WARNINGS]           = (osdItemPos_t) {  9, 10, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = (osdItemPos_t) { 12,  2, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_DEBUG]              = (osdItemPos_t) {  1,  0, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_PITCH_ANGLE]        = (osdItemPos_t) {  1,  8, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ROLL_ANGLE]         = (osdItemPos_t) {  1,  9, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_GPS_LAT]            = (osdItemPos_t) {  1,  2, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_GPS_LON]            = (osdItemPos_t) { 18,  2, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_HOME_DIST]          = (osdItemPos_t) { 15,  9, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_HOME_DIR]           = (osdItemPos_t) { 14,  9, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_COMPASS_BAR]        = (osdItemPos_t) { 10,  8, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_MAIN_BATT_USAGE]    = (osdItemPos_t) {  8, 12, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ARMED_TIME]         = (osdItemPos_t) {  1,  2, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_DISARMED]           = (osdItemPos_t) { 10,  4, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_NUMERICAL_HEADING]  = (osdItemPos_t) { 23,  9, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_NUMERICAL_VARIO]    = (osdItemPos_t) { 23,  8, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ESC_TMP]            = (osdItemPos_t) { 18,  2, OSD_ORIGIN_UL};
+    osdConfig->item_pos[OSD_ESC_RPM]            = (osdItemPos_t) { 19,  2, OSD_ORIGIN_UL};
 
-    osdConfig->item_pos[OSD_CROSSHAIRS][0] = 8;
-    osdConfig->item_pos[OSD_CROSSHAIRS][1] = 6;
-    osdConfig->visible[OSD_CROSSHAIRS]     = true;
 
-    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON][0] = 8;
-    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON][1] = 6;
-    osdConfig->visible[OSD_ARTIFICIAL_HORIZON]     = true;
+    // PAL : 16 x 30 / center = 7, 14
+    // NTSC: 13 x 30 / center = 6, 14
+    // Crosshair uses 3 chars, from center offset 1 to the left
+    osdConfig->item_pos[OSD_CROSSHAIRS]         = (osdItemPos_t) { -1,  0, OSD_ORIGIN_C};
+    // AH top center of region is 4 to the left
+    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = (osdItemPos_t) {  0, -4, OSD_ORIGIN_C};
+    // Horizon is centered
+    osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = (osdItemPos_t) {  0,  0, OSD_ORIGIN_C};
 
-    osdConfig->item_pos[OSD_HORIZON_SIDEBARS][0] = 8;
-    osdConfig->item_pos[OSD_HORIZON_SIDEBARS][1] = 6;
-    osdConfig->visible[OSD_HORIZON_SIDEBARS]     = true;
 
-    osdConfig->item_pos[OSD_ONTIME][0] = 22;
-    osdConfig->item_pos[OSD_ONTIME][1] = 1;
-    osdConfig->visible[OSD_ONTIME]     = true;
-
-    osdConfig->item_pos[OSD_FLYTIME][0] = 1;
-    osdConfig->item_pos[OSD_FLYTIME][1] = 1;
-    osdConfig->visible[OSD_FLYTIME]     = true;
-
-    osdConfig->item_pos[OSD_FLYMODE][0] = 13;
-    osdConfig->item_pos[OSD_FLYMODE][1] = 10;
-    osdConfig->visible[OSD_FLYMODE]     = true;
-
-    osdConfig->item_pos[OSD_CRAFT_NAME][0] = 10;
-    osdConfig->item_pos[OSD_CRAFT_NAME][1] = 11;
-    osdConfig->visible[OSD_CRAFT_NAME]     = true;
-
-    osdConfig->item_pos[OSD_THROTTLE_POS][0] = 1;
-    osdConfig->item_pos[OSD_THROTTLE_POS][1] = 7;
-    osdConfig->visible[OSD_THROTTLE_POS]     = true;
-
-    osdConfig->item_pos[OSD_VTX_CHANNEL][0] = 25;
-    osdConfig->item_pos[OSD_VTX_CHANNEL][1] = 11;
-    osdConfig->visible[OSD_VTX_CHANNEL]     = true;
-
-    osdConfig->item_pos[OSD_CURRENT_DRAW][0] = 1;
-    osdConfig->item_pos[OSD_CURRENT_DRAW][1] = 12;
-    osdConfig->visible[OSD_CURRENT_DRAW]     = true;
-
-    osdConfig->item_pos[OSD_MAH_DRAWN][0] = 1;
-    osdConfig->item_pos[OSD_MAH_DRAWN][1] = 11;
-    osdConfig->visible[OSD_MAH_DRAWN]     = true;
-
-    osdConfig->item_pos[OSD_GPS_SPEED][0] = 26;
-    osdConfig->item_pos[OSD_GPS_SPEED][1] = 6;
-    osdConfig->visible[OSD_GPS_SPEED]     = true;
-
-    osdConfig->item_pos[OSD_GPS_SATS][0] = 19;
-    osdConfig->item_pos[OSD_GPS_SATS][1] = 1;
-    osdConfig->visible[OSD_GPS_SATS]     = true;
-
-    osdConfig->item_pos[OSD_ALTITUDE][0] = 23;
-    osdConfig->item_pos[OSD_ALTITUDE][1] = 7;
-    osdConfig->visible[OSD_ALTITUDE]     = true;
-
-    osdConfig->item_pos[OSD_ROLL_PIDS][0] = 7;
-    osdConfig->item_pos[OSD_ROLL_PIDS][1] = 13;
-    osdConfig->visible[OSD_ROLL_PIDS]     = true;
-
-    osdConfig->item_pos[OSD_PITCH_PIDS][0] = 7;
-    osdConfig->item_pos[OSD_PITCH_PIDS][1] = 14;
-    osdConfig->visible[OSD_PITCH_PIDS]     = true;
-
-    osdConfig->item_pos[OSD_YAW_PIDS][0] = 7;
-    osdConfig->item_pos[OSD_YAW_PIDS][1] = 15;
-    osdConfig->visible[OSD_YAW_PIDS]     = true;
-
-    osdConfig->item_pos[OSD_POWER][0] = 1;
-    osdConfig->item_pos[OSD_POWER][1] = 10;
-    osdConfig->visible[OSD_POWER]     = true;
-
-    osdConfig->item_pos[OSD_PIDRATE_PROFILE][0] = 25;
-    osdConfig->item_pos[OSD_PIDRATE_PROFILE][1] = 10;
-    osdConfig->visible[OSD_PIDRATE_PROFILE]     = true;
-
-    osdConfig->item_pos[OSD_WARNINGS][0] = 9;
-    osdConfig->item_pos[OSD_WARNINGS][1] = 10;
-    osdConfig->visible[OSD_WARNINGS]     = true;
-
-    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE][0] = 12;
-    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE][1] = 2;
-    osdConfig->visible[OSD_AVG_CELL_VOLTAGE]     = true;
-
-    osdConfig->item_pos[OSD_DEBUG][0] = 1;
-    osdConfig->item_pos[OSD_DEBUG][1] = 0;
-    osdConfig->visible[OSD_DEBUG]     = true;
-
-    osdConfig->item_pos[OSD_PITCH_ANGLE][0] = 1;
-    osdConfig->item_pos[OSD_PITCH_ANGLE][1] = 8;
-    osdConfig->visible[OSD_PITCH_ANGLE]     = true;
-
-    osdConfig->item_pos[OSD_ROLL_ANGLE][0] = 1;
-    osdConfig->item_pos[OSD_ROLL_ANGLE][1] = 9;
-    osdConfig->visible[OSD_ROLL_ANGLE]     = true;
-
-    osdConfig->item_pos[OSD_GPS_LAT][0] = 1;
-    osdConfig->item_pos[OSD_GPS_LAT][1] = 2;
-    osdConfig->visible[OSD_GPS_LAT]     = true;
-
-    osdConfig->item_pos[OSD_GPS_LON][0] = 18;
-    osdConfig->item_pos[OSD_GPS_LON][1] = 2;
-    osdConfig->visible[OSD_GPS_LON]     = true;
-
-    osdConfig->item_pos[OSD_HOME_DIST][0] = 15;
-    osdConfig->item_pos[OSD_HOME_DIST][1] = 9;
-    osdConfig->visible[OSD_HOME_DIST]     = true;
-
-    osdConfig->item_pos[OSD_HOME_DIR][0] = 14;
-    osdConfig->item_pos[OSD_HOME_DIR][1] = 9;
-    osdConfig->visible[OSD_HOME_DIR]     = true;
-
-    osdConfig->item_pos[OSD_COMPASS_BAR][0] = 10;
-    osdConfig->item_pos[OSD_COMPASS_BAR][1] = 8;
-    osdConfig->visible[OSD_COMPASS_BAR]     = true;
-
-    osdConfig->item_pos[OSD_MAIN_BATT_USAGE][0] = 8;
-    osdConfig->item_pos[OSD_MAIN_BATT_USAGE][1] = 12;
-    osdConfig->visible[OSD_MAIN_BATT_USAGE]     = true;
-
-    osdConfig->item_pos[OSD_ARMED_TIME][0] = 1;
-    osdConfig->item_pos[OSD_ARMED_TIME][1] = 2;
-    osdConfig->visible[OSD_ARMED_TIME]     = true;
-
-    osdConfig->item_pos[OSD_DISARMED][0] = 10;
-    osdConfig->item_pos[OSD_DISARMED][1] = 4;
-    osdConfig->visible[OSD_DISARMED]     = true;
-
-    osdConfig->item_pos[OSD_NUMERICAL_HEADING][0] = 23;
-    osdConfig->item_pos[OSD_NUMERICAL_HEADING][1] = 9;
-    osdConfig->visible[OSD_NUMERICAL_HEADING]     = true;
-
-    osdConfig->item_pos[OSD_NUMERICAL_VARIO][0] = 23;
-    osdConfig->item_pos[OSD_NUMERICAL_VARIO][1] = 8;
-    osdConfig->visible[OSD_NUMERICAL_VARIO]     = true;
-
-    osdConfig->item_pos[OSD_ESC_TMP][0] = 18;
-    osdConfig->item_pos[OSD_ESC_TMP][1] = 2;
-    osdConfig->visible[OSD_ESC_TMP]     = true;
-
-    osdConfig->item_pos[OSD_ESC_RPM][0] = 19;
-    osdConfig->item_pos[OSD_ESC_RPM][1] = 2;
-    osdConfig->visible[OSD_ESC_RPM]     = true;
+    osdConfig->visible[OSD_RSSI_VALUE]         = true;
+    osdConfig->visible[OSD_MAIN_BATT_VOLTAGE]  = true;
+    osdConfig->visible[OSD_CROSSHAIRS]         = true;
+    osdConfig->visible[OSD_ARTIFICIAL_HORIZON] = true;
+    osdConfig->visible[OSD_HORIZON_SIDEBARS]   = true;
+    osdConfig->visible[OSD_ONTIME]             = true;
+    osdConfig->visible[OSD_FLYTIME]            = true;
+    osdConfig->visible[OSD_FLYMODE]            = true;
+    osdConfig->visible[OSD_CRAFT_NAME]         = true;
+    osdConfig->visible[OSD_THROTTLE_POS]       = true;
+    osdConfig->visible[OSD_VTX_CHANNEL]        = true;
+    osdConfig->visible[OSD_CURRENT_DRAW]       = true;
+    osdConfig->visible[OSD_MAH_DRAWN]          = true;
+    osdConfig->visible[OSD_GPS_SPEED]          = true;
+    osdConfig->visible[OSD_GPS_SATS]           = true;
+    osdConfig->visible[OSD_ALTITUDE]           = true;
+    osdConfig->visible[OSD_ROLL_PIDS]          = true;
+    osdConfig->visible[OSD_PITCH_PIDS]         = true;
+    osdConfig->visible[OSD_YAW_PIDS]           = true;
+    osdConfig->visible[OSD_POWER]              = true;
+    osdConfig->visible[OSD_PIDRATE_PROFILE]    = true;
+    osdConfig->visible[OSD_WARNINGS]           = true;
+    osdConfig->visible[OSD_AVG_CELL_VOLTAGE]   = true;
+    osdConfig->visible[OSD_DEBUG]              = true;
+    osdConfig->visible[OSD_PITCH_ANGLE]        = true;
+    osdConfig->visible[OSD_ROLL_ANGLE]         = true;
+    osdConfig->visible[OSD_GPS_LAT]            = true;
+    osdConfig->visible[OSD_GPS_LON]            = true;
+    osdConfig->visible[OSD_HOME_DIST]          = true;
+    osdConfig->visible[OSD_HOME_DIR]           = true;
+    osdConfig->visible[OSD_COMPASS_BAR]        = true;
+    osdConfig->visible[OSD_MAIN_BATT_USAGE]    = true;
+    osdConfig->visible[OSD_ARMED_TIME]         = true;
+    osdConfig->visible[OSD_DISARMED]           = true;
+    osdConfig->visible[OSD_NUMERICAL_HEADING]  = true;
+    osdConfig->visible[OSD_NUMERICAL_VARIO]    = true;
+    osdConfig->visible[OSD_ESC_TMP]            = true;
 
     osdConfig->enabled_stats[OSD_STAT_MAX_SPEED]       = true;
     osdConfig->enabled_stats[OSD_STAT_MIN_BATTERY]     = true;

@@ -848,8 +848,8 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
             //FIXME: this should be changed to separate x, y, and visibility
             uint16_t tmp;
-            tmp  = (osdConfig()->item_pos[i][0] & ((1 << 5) - 1));
-            tmp |= (osdConfig()->item_pos[i][1] << 5);
+            tmp  = (osdConfig()->item_pos[i].x & ((1 << 5) - 1));
+            tmp |= (osdConfig()->item_pos[i].y << 5);
             if (osdConfig()->visible[i]) tmp |= 0x0800;
             sbufWriteU16(dst, tmp);
         }
@@ -2180,8 +2180,8 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                     uint8_t x = (value & ((1 << 5) - 1));
                     uint8_t y = ((value >> 5) & ((1 << 5) - 1));
                     uint8_t visible = (value & 0x0800) ? 1 : 0;
-                    osdConfigMutable()->item_pos[addr][0] = x;
-                    osdConfigMutable()->item_pos[addr][1] = y;
+                    osdConfigMutable()->item_pos[addr].x = x;
+                    osdConfigMutable()->item_pos[addr].y = y;
                     osdConfigMutable()->visible[addr]     = visible;
                 }
 #else
