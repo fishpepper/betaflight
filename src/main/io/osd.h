@@ -98,10 +98,14 @@ typedef enum {
 } osd_unit_e;
 
 typedef enum {
-    OSD_ORIGIN_UL,
-    OSD_ORIGIN_UR,
-    OSD_ORIGIN_LR,
-    OSD_ORIGIN_LL,
+    OSD_ORIGIN_NW,
+    OSD_ORIGIN_N,
+    OSD_ORIGIN_NE,
+    OSD_ORIGIN_E,
+    OSD_ORIGIN_SE,
+    OSD_ORIGIN_S,
+    OSD_ORIGIN_SW,
+    OSD_ORIGIN_W,
     OSD_ORIGIN_C
 } osd_origin_e;
 

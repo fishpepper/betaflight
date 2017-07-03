@@ -227,13 +227,9 @@ static uint8_t osdGetDirectionSymbolFromHeading(int heading)
     return SYM_ARROW_SOUTH + heading;
 }
 
-static void osdDrawSingleElement(uint8_t item)
-{
-    if (!osdConfig()->visible[item] || BLINK(item)) {
-        return;
-    }
-
-    char buff[32];
+// this will convert from relative positioning (i.e. measured from center pos)
+// to absolute positioning (based on display height and width)
+static void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x, int8_t *pos_y) {
 
     // output display dimensions
     uint8_t display_width  = osdDisplayPort->colCount - 1;
@@ -246,24 +242,45 @@ static void osdDrawSingleElement(uint8_t item)
     // calculate absolute position based on origin
     switch (osdConfig()->item_pos[item].origin) {
         default:
-        case(OSD_ORIGIN_UL):
-            // origin is upper left
+        case(OSD_ORIGIN_NW):
             break;
 
-        case(OSD_ORIGIN_UR):
+        case(OSD_ORIGIN_N):
+            // origin is upper center
+            elemPosX += display_width / 2;
+            break;
+
+        case(OSD_ORIGIN_NE):
             // origin is upper right
             elemPosX += display_width;
             break;
 
-        case(OSD_ORIGIN_LR):
+        case(OSD_ORIGIN_E):
+            // origin is right center
+            elemPosX += display_width;
+            elemPosY += display_height / 2;
+            break;
+
+        case(OSD_ORIGIN_SE):
             // origin is lower right
             elemPosX += display_width;
             elemPosY += display_height;
             break;
 
-        case(OSD_ORIGIN_LL):
+        case(OSD_ORIGIN_S):
+            // origin is lower center
+            elemPosX += display_width / 2;
+            elemPosY += display_height;
+            break;
+
+        case(OSD_ORIGIN_SW):
             // origin is lower left
             elemPosY += display_height;
+            break;
+
+        case(OSD_ORIGIN_W):
+            // origin is left center
+            elemPosY += display_height / 2;
             break;
 
         case(OSD_ORIGIN_C):
@@ -273,9 +290,23 @@ static void osdDrawSingleElement(uint8_t item)
             break;
     }
 
-    // make sure to have valid x/y positions [0..max]
-    elemPosX = MAX(0, MIN(display_width, elemPosX));
-    elemPosY = MAX(0, MIN(display_height, elemPosY));
+    // make sure to return valid x/y positions \in [0..max]
+    *pos_x = MAX(0, MIN(display_width, elemPosX));
+    *pos_y = MAX(0, MIN(display_height, elemPosY));
+}
+
+static void osdDrawSingleElement(uint8_t item)
+{
+    if (!osdConfig()->visible[item] || BLINK(item)) {
+        return;
+    }
+
+    char buff[32];
+    int8_t elemPosX;
+    int8_t elemPosY;
+
+    // fetch absolute positions
+    osdConvertToAbsolutePosition(item, &elemPosX, &elemPosY);
 
     switch (item) {
     case OSD_RSSI_VALUE:
@@ -714,48 +745,47 @@ static void osdDrawElements(void)
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
 
-    osdConfig->item_pos[OSD_RSSI_VALUE]         = (osdItemPos_t) {  8,  1, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = (osdItemPos_t) { 12,  1, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_CROSSHAIRS]         = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = (osdItemPos_t) {  8,  6, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ONTIME]             = (osdItemPos_t) { 22,  1, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_FLYTIME]            = (osdItemPos_t) {  1,  1, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_FLYMODE]            = (osdItemPos_t) { 13, 10, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_CRAFT_NAME]         = (osdItemPos_t) { 10, 11, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_THROTTLE_POS]       = (osdItemPos_t) {  1,  7, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_VTX_CHANNEL]        = (osdItemPos_t) { 25, 11, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_CURRENT_DRAW]       = (osdItemPos_t) {  1, 12, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_MAH_DRAWN]          = (osdItemPos_t) {  1, 11, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_GPS_SPEED]          = (osdItemPos_t) { 26,  6, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_GPS_SATS]           = (osdItemPos_t) { 19,  1, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ALTITUDE]           = (osdItemPos_t) { 23,  7, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ROLL_PIDS]          = (osdItemPos_t) {  7, 13, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_PITCH_PIDS]         = (osdItemPos_t) {  7, 14, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_YAW_PIDS]           = (osdItemPos_t) {  5, 15, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_POWER]              = (osdItemPos_t) {  1, 10, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_PIDRATE_PROFILE]    = (osdItemPos_t) { 25, 10, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_WARNINGS]           = (osdItemPos_t) {  9, 10, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = (osdItemPos_t) { 12,  2, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_DEBUG]              = (osdItemPos_t) {  1,  0, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_PITCH_ANGLE]        = (osdItemPos_t) {  1,  8, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ROLL_ANGLE]         = (osdItemPos_t) {  1,  9, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_GPS_LAT]            = (osdItemPos_t) {  1,  2, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_GPS_LON]            = (osdItemPos_t) { 18,  2, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_HOME_DIST]          = (osdItemPos_t) { 15,  9, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_HOME_DIR]           = (osdItemPos_t) { 14,  9, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_COMPASS_BAR]        = (osdItemPos_t) { 10,  8, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_MAIN_BATT_USAGE]    = (osdItemPos_t) {  8, 12, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ARMED_TIME]         = (osdItemPos_t) {  1,  2, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_DISARMED]           = (osdItemPos_t) { 10,  4, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_NUMERICAL_HEADING]  = (osdItemPos_t) { 23,  9, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_NUMERICAL_VARIO]    = (osdItemPos_t) { 23,  8, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ESC_TMP]            = (osdItemPos_t) { 18,  2, OSD_ORIGIN_UL};
-    osdConfig->item_pos[OSD_ESC_RPM]            = (osdItemPos_t) { 19,  2, OSD_ORIGIN_UL};
+    // PAL : 0..29, 0..15 / center = 14, 7
+    // NTSC: 0..29, 0..12 / center = 14, 6
+    osdConfig->item_pos[OSD_FLYTIME]            = (osdItemPos_t) {   1,  1, OSD_ORIGIN_NW};
+    osdConfig->item_pos[OSD_RSSI_VALUE]         = (osdItemPos_t) {  -6,  1, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = (osdItemPos_t) {  -2,  1, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_FLYMODE]            = (osdItemPos_t) {  -1, -2, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_CRAFT_NAME]         = (osdItemPos_t) {  -4, -1, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_THROTTLE_POS]       = (osdItemPos_t) {   1,  0, OSD_ORIGIN_W};
+    osdConfig->item_pos[OSD_CURRENT_DRAW]       = (osdItemPos_t) {   1,  0, OSD_ORIGIN_SW};
+    osdConfig->item_pos[OSD_MAH_DRAWN]          = (osdItemPos_t) {   1, -1, OSD_ORIGIN_SW};
+    osdConfig->item_pos[OSD_POWER]              = (osdItemPos_t) {   1, -2, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_WARNINGS]           = (osdItemPos_t) {  -5, -2, OSD_ORIGIN_C};
+    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = (osdItemPos_t) {  -2,  2, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_DEBUG]              = (osdItemPos_t) {   1,  0, OSD_ORIGIN_NW};
+    osdConfig->item_pos[OSD_PITCH_ANGLE]        = (osdItemPos_t) {   1, -1, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_ROLL_ANGLE]         = (osdItemPos_t) {   1, -2, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_GPS_LAT]            = (osdItemPos_t) {   1,  2, OSD_ORIGIN_NW};
+    osdConfig->item_pos[OSD_HOME_DIST]          = (osdItemPos_t) {   1,  3, OSD_ORIGIN_C};
+    osdConfig->item_pos[OSD_HOME_DIR]           = (osdItemPos_t) {   0,  3, OSD_ORIGIN_C};
+    osdConfig->item_pos[OSD_COMPASS_BAR]        = (osdItemPos_t) {  -4,  2, OSD_ORIGIN_C};
+    osdConfig->item_pos[OSD_MAIN_BATT_USAGE]    = (osdItemPos_t) {  -6,  0, OSD_ORIGIN_S};
+    osdConfig->item_pos[OSD_ARMED_TIME]         = (osdItemPos_t) {   1,  2, OSD_ORIGIN_NW};
+    osdConfig->item_pos[OSD_DISARMED]           = (osdItemPos_t) {  -4,  4, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_ONTIME]             = (osdItemPos_t) {  -7,  1, OSD_ORIGIN_NE};
+    osdConfig->item_pos[OSD_VTX_CHANNEL]        = (osdItemPos_t) {  -4, -1, OSD_ORIGIN_SE};
+    osdConfig->item_pos[OSD_GPS_SPEED]          = (osdItemPos_t) {  -3,  0, OSD_ORIGIN_E};
+    osdConfig->item_pos[OSD_GPS_SATS]           = (osdItemPos_t) {   5,  1, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_ALTITUDE]           = (osdItemPos_t) {  -6,  0, OSD_ORIGIN_E};
+    osdConfig->item_pos[OSD_PIDRATE_PROFILE]    = (osdItemPos_t) {  -4, -2, OSD_ORIGIN_SE};
+    osdConfig->item_pos[OSD_GPS_LON]            = (osdItemPos_t) {   4,  2, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_NUMERICAL_HEADING]  = (osdItemPos_t) {  -6,  3, OSD_ORIGIN_E};
+    osdConfig->item_pos[OSD_NUMERICAL_VARIO]    = (osdItemPos_t) {  -6,  2, OSD_ORIGIN_E};
+    osdConfig->item_pos[OSD_ESC_TMP]            = (osdItemPos_t) {   4,  2, OSD_ORIGIN_N};
+    osdConfig->item_pos[OSD_ESC_RPM]            = (osdItemPos_t) {   5,  2, OSD_ORIGIN_N};
+
+    // those were undefined for ntsc (y pos = 13, 14, and 15) -> shifted 2 lines upwards
+    osdConfig->item_pos[OSD_ROLL_PIDS]          = (osdItemPos_t) {   7,  -2, OSD_ORIGIN_SW};
+    osdConfig->item_pos[OSD_PITCH_PIDS]         = (osdItemPos_t) {   7,  -1, OSD_ORIGIN_SW};
+    osdConfig->item_pos[OSD_YAW_PIDS]           = (osdItemPos_t) {   5,  -0, OSD_ORIGIN_SW};
 
 
-    // PAL : 16 x 30 / center = 7, 14
-    // NTSC: 13 x 30 / center = 6, 14
     // Crosshair uses 3 chars, from center offset 1 to the left
     osdConfig->item_pos[OSD_CROSSHAIRS]         = (osdItemPos_t) { -1,  0, OSD_ORIGIN_C};
     // AH top center of region is 4 to the left
