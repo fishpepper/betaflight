@@ -391,20 +391,16 @@ TEST(OsdTest, TestAlarms)
 
     // and
     // the following OSD elements are visible
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][0] = 8;
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][1] = 1;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE] = (osdItemPos_t) {   8,  1, OSD_ORIGIN_NW};
     osdConfigMutable()->visible[OSD_RSSI_VALUE] = true;
 
-    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE][0] = 12;
-    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE][1] = 1;
+    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE] = (osdItemPos_t) {   12,  1, OSD_ORIGIN_NW};
     osdConfigMutable()->visible[OSD_MAIN_BATT_VOLTAGE] = true;
 
-    osdConfigMutable()->item_pos[OSD_FLYTIME][0] = 1;
-    osdConfigMutable()->item_pos[OSD_FLYTIME][1] = 1;
-    osdConfigMutable()->visible[OSD_FLYTIME] = true;        
+    osdConfigMutable()->item_pos[OSD_FLYTIME] = (osdItemPos_t) {   1,  1, OSD_ORIGIN_NW};
+    osdConfigMutable()->visible[OSD_FLYTIME] = true;
 
-    osdConfigMutable()->item_pos[OSD_ALTITUDE][0] = 23;
-    osdConfigMutable()->item_pos[OSD_ALTITUDE][1] = 7;
+    osdConfigMutable()->item_pos[OSD_ALTITUDE] = (osdItemPos_t) {   23,  7, OSD_ORIGIN_NW};
     osdConfigMutable()->visible[OSD_ALTITUDE] = true;
 
     // and
@@ -478,8 +474,7 @@ TEST(OsdTest, TestAlarms)
 TEST(OsdTest, TestElementRssi)
 {
     // given
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][0] = 8;
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE][1] = 1;
+    osdConfigMutable()->item_pos[OSD_RSSI_VALUE] = (osdItemPos_t) {   8,  1, OSD_ORIGIN_NW};
     osdConfigMutable()->visible[OSD_RSSI_VALUE] = true;
     osdConfigMutable()->rssi_alarm = 0;
 
