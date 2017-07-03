@@ -850,6 +850,7 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
             uint16_t tmp;
             tmp  = (osdConfig()->item_pos[i].x & ((1 << 5) - 1));
             tmp |= (osdConfig()->item_pos[i].y << 5);
+            tmp |= ((osdConfig()->item_pos[i].origin & 0xF) << 12);
             if (osdConfig()->visible[i]) tmp |= 0x0800;
             sbufWriteU16(dst, tmp);
         }
@@ -2180,8 +2181,10 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                     uint8_t x = (value & ((1 << 5) - 1));
                     uint8_t y = ((value >> 5) & ((1 << 5) - 1));
                     uint8_t visible = (value & 0x0800) ? 1 : 0;
+                    uint8_t origin = (value & 0xF000) >> 12;
                     osdConfigMutable()->item_pos[addr].x = x;
                     osdConfigMutable()->item_pos[addr].y = y;
+                    osdConfigMutable()->item_pos[addr].origin = (origin);
                     osdConfigMutable()->visible[addr]     = visible;
                 }
 #else
