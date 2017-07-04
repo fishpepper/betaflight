@@ -230,7 +230,6 @@ static uint8_t osdGetDirectionSymbolFromHeading(int heading)
 // this will convert from relative positioning (i.e. measured from center pos)
 // to absolute positioning (based on display height and width)
 static void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x, int8_t *pos_y) {
-
     // output display dimensions
     uint8_t display_width  = osdDisplayPort->colCount - 1;
     uint8_t display_height = osdDisplayPort->rowCount - 1;
@@ -239,56 +238,35 @@ static void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x, int8_t *po
     int8_t elemPosX = osdConfig()->item_pos[item].x;
     int8_t elemPosY = osdConfig()->item_pos[item].y;
 
-    // calculate absolute position based on origin
-    switch (osdConfig()->item_pos[item].origin) {
-        default:
-        case(OSD_ORIGIN_NW):
-            break;
+    // fetch origin positio
+    uint8_t origin = osdConfig()->item_pos[item].origin;
 
-        case(OSD_ORIGIN_N):
-            // origin is upper center
-            elemPosX += display_width / 2;
-            break;
+    // start with center
+    elemPosX += display_width / 2;
+    elemPosY += display_height / 2;
 
-        case(OSD_ORIGIN_NE):
-            // origin is upper right
-            elemPosX += display_width;
-            break;
 
-        case(OSD_ORIGIN_E):
-            // origin is right center
-            elemPosX += display_width;
-            elemPosY += display_height / 2;
-            break;
-
-        case(OSD_ORIGIN_SE):
-            // origin is lower right
-            elemPosX += display_width;
-            elemPosY += display_height;
-            break;
-
-        case(OSD_ORIGIN_S):
-            // origin is lower center
-            elemPosX += display_width / 2;
-            elemPosY += display_height;
-            break;
-
-        case(OSD_ORIGIN_SW):
-            // origin is lower left
-            elemPosY += display_height;
-            break;
-
-        case(OSD_ORIGIN_W):
-            // origin is left center
-            elemPosY += display_height / 2;
-            break;
-
-        case(OSD_ORIGIN_C):
-            // origin is center
-            elemPosX += display_width / 2;
-            elemPosY += display_height / 2;
-            break;
+    // add offsets based on origin
+    if (origin & OSD_ORIGIN_MASK_E) {
+        // move east
+        elemPosX += display_width / 2;
     }
+
+    if (origin & OSD_ORIGIN_MASK_W) {
+        // move west
+        elemPosX -= display_width / 2;
+    }
+
+    if (origin & OSD_ORIGIN_MASK_N) {
+        // move north
+        elemPosY -= display_height / 2;
+    }
+
+    if (origin & OSD_ORIGIN_MASK_S) {
+        // move south
+        elemPosY += display_height / 2;
+    }
+
 
     // make sure to return valid x/y positions \in [0..max]
     *pos_x = MAX(0, MIN(display_width, elemPosX));
