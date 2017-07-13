@@ -858,7 +858,13 @@ static bool mspCommonProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProce
 
         // Element position and visibility
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[i]);
+            //FIXME: this should be changed to separate x, y, and visibility
+            uint16_t tmp;
+            tmp  = (osdConfig()->item[i].x & ((1 << 5) - 1));
+            tmp |= (osdConfig()->item[i].y << 5);
+            tmp |= ((osdConfig()->item[i].origin & 0xF) << 12);
+            if (osdConfig()->item[i].visible) tmp |= 0x0800;
+            sbufWriteU16(dst, tmp);
         }
 
         // Post flight statistics
@@ -2214,7 +2220,15 @@ static mspResult_e mspCommonProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                     osdConfigMutable()->enabled_stats[addr] = value;
                 } else if (addr < OSD_ITEM_COUNT) {
                     /* Set element positions */
-                    osdConfigMutable()->item_pos[addr] = value;
+                    //FIXME: this should be changed to separate x and y transfer?!
+                    uint8_t x = (value & ((1 << 5) - 1));
+                    uint8_t y = ((value >> 5) & ((1 << 5) - 1));
+                    uint8_t visible = (value & 0x0800) ? 1 : 0;
+                    uint8_t origin = (value & 0xF000) >> 12;
+                    osdConfigMutable()->item[addr].x = x;
+                    osdConfigMutable()->item[addr].y = y;
+                    osdConfigMutable()->item[addr].origin = (origin);
+                    osdConfigMutable()->item[addr].visible = visible;
                 } else {
                   return MSP_RESULT_ERROR;
                 }

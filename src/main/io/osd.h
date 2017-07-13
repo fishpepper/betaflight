@@ -32,11 +32,11 @@ extern const char * const osdTimerSourceNames[OSD_NUM_TIMER_TYPES];
 #define OSD_POSCFG_MAX   (VISIBLE_FLAG|0x3FF) // For CLI values
 
 // Character coordinate
-#define OSD_POSITION_BITS 5 // 5 bits gives a range 0-31
-#define OSD_POSITION_XY_MASK ((1 << OSD_POSITION_BITS) - 1)
-#define OSD_POS(x,y)  ((x & OSD_POSITION_XY_MASK) | ((y & OSD_POSITION_XY_MASK) << OSD_POSITION_BITS))
-#define OSD_X(x)      (x & OSD_POSITION_XY_MASK)
-#define OSD_Y(x)      ((x >> OSD_POSITION_BITS) & OSD_POSITION_XY_MASK)
+//#define OSD_POSITION_BITS 5 // 5 bits gives a range 0-31
+//#define OSD_POSITION_XY_MASK ((1 << OSD_POSITION_BITS) - 1)
+//#define OSD_POS(x,y)  {(x), (y)}
+//#define OSD_X(x)      (x & OSD_POSITION_XY_MASK)
+//#define OSD_Y(x)      ((x >> OSD_POSITION_BITS) & OSD_POSITION_XY_MASK)
 
 // Timer configuration
 // Stored as 15[alarm:8][precision:4][source:4]0
@@ -44,6 +44,9 @@ extern const char * const osdTimerSourceNames[OSD_NUM_TIMER_TYPES];
 #define OSD_TIMER_SRC(timer)        (timer & 0x0F)
 #define OSD_TIMER_PRECISION(timer)  ((timer >> 4) & 0x0F)
 #define OSD_TIMER_ALARM(timer)      ((timer >> 8) & 0xFF)
+
+#define OSD_ITEM_VISIBLE            true
+#define OSD_ITEM_NOT_VISIBLE        false
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -126,8 +129,28 @@ typedef enum {
     OSD_TIMER_PREC_COUNT
 } osd_timer_precision_e;
 
+typedef enum {
+    OSD_ORIGIN_C  = 0,
+    OSD_ORIGIN_N  = (1<<0),
+    OSD_ORIGIN_E  = (1<<1),
+    OSD_ORIGIN_S  = (1<<2),
+    OSD_ORIGIN_W  = (1<<3),
+    OSD_ORIGIN_NE = OSD_ORIGIN_N | OSD_ORIGIN_E,
+    OSD_ORIGIN_SE = OSD_ORIGIN_S | OSD_ORIGIN_E,
+    OSD_ORIGIN_SW = OSD_ORIGIN_S | OSD_ORIGIN_W,
+    OSD_ORIGIN_NW = OSD_ORIGIN_N | OSD_ORIGIN_W
+} osd_origin_e;
+
+typedef struct {
+    int8_t x;
+    int8_t y;
+    osd_origin_e origin;
+    bool visible;
+} osdItem_t;
+
 typedef struct osdConfig_s {
-    uint16_t item_pos[OSD_ITEM_COUNT];
+    osdItem_t item[OSD_ITEM_COUNT];
+
     bool enabled_stats[OSD_STAT_COUNT];
 
     // Alarms
