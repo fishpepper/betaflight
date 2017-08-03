@@ -317,15 +317,17 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
         break;
 
     case OME_VISIBLE:
-        if (IS_PRINTVALUE(p) && p->data) {
-             osdItem_t *item = (osdItem_t *)p->data;
+        if (feature(FEATURE_OSD)) {
+            if (IS_PRINTVALUE(p) && p->data) {
+                osdItem_t *item = (osdItem_t *)p->data;
 
-            if (item->flags & OSD_FLAG_VISIBLE) {
-                cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "YES");
-            } else {
-                cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "NO ");
+                if (item->flags & OSD_FLAG_VISIBLE) {
+                    cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "YES");
+                } else {
+                    cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "NO ");
+                }
+                CLR_PRINTVALUE(p);
             }
-            CLR_PRINTVALUE(p);
         }
         break;
 

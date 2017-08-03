@@ -379,27 +379,18 @@ STATIC_UNIT_TESTED void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x
 
 static void osdDrawSingleElement(uint8_t item)
 {
-    if (!(osdConfig()->item[item].flags & OSD_FLAG_VISIBLE) || BLINK(item)) {
-        return;
-    }
-
-    /* Hide OSD when OSDSW mode is active */
-    if (IS_RC_MODE_ACTIVE(BOXOSD))
-      return;
-
-
     char buff[OSD_ELEMENT_BUFFER_LENGTH];
     int8_t elemPosX;
     int8_t elemPosY;
-
-    // fetch absolute positions
-    osdConvertToAbsolutePosition(item, &elemPosX, &elemPosY);
 
     if (item == OSD_ITEM_COUNT) {
         // no osd items are visible
         displayClearScreen(osdDisplayPort);
         return;
     }
+
+    // fetch absolute positions
+    osdConvertToAbsolutePosition(item, &elemPosX, &elemPosY);
 
     switch (item) {
     case OSD_RSSI_VALUE:
