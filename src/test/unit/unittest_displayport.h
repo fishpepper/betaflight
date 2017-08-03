@@ -65,12 +65,6 @@ static int displayPortTestDrawScreen(displayPort_t *displayPort)
     return 0;
 }
 
-static int displayPortTestScreenSize(const displayPort_t *displayPort)
-{
-    UNUSED(displayPort);
-    return 0;
-}
-
 static int displayPortTestWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
 {
     UNUSED(displayPort);
@@ -118,7 +112,6 @@ static const displayPortVTable_t testDisplayPortVTable = {
     .release = displayPortTestRelease,
     .clearScreen = displayPortTestClearScreen,
     .drawScreen = displayPortTestDrawScreen,
-    .screenSize = displayPortTestScreenSize,
     .writeString = displayPortTestWriteString,
     .writeChar = displayPortTestWriteChar,
     .isTransferInProgress = displayPortTestIsTransferInProgress,
@@ -175,7 +168,7 @@ void displayPortTestBufferSubstring(int x, int y, const char * expectedFormat, .
     }
     if (!success){
         char fbuf[256];
-        strncpy(fbuf, &testDisplayPortBuffer[(y * testDisplayPort.cols) + x], 256);
+        strncpy(fbuf, &testDisplayPortBuffer[(y * testDisplayPort.colCount) + x], 256);
         fbuf[strlen(expected)] = 0;
         std::cout << "displayPortTestBufferSubstring("
              << (int)x << ", "

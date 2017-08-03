@@ -334,16 +334,12 @@ STATIC_UNIT_TESTED void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x
     uint8_t maxX  = osdDisplayPort->colCount - 1;
     uint8_t maxY = osdDisplayPort->rowCount - 1;
 
-    // x/y position (note: might need origin offset, see below)
-    int8_t tmpX = osdConfig()->item[item].x;
-    int8_t tmpY = osdConfig()->item[item].y;
-
     // fetch origin positio
-    uint8_t origin = (osdConfig()->item[item].flags & OSD_FLAG_ORIGIN_MASK);
+    uint8_t origin = ((uint8_t)(osdConfig()->item[item].flags) & OSD_FLAG_ORIGIN_MASK);
 
     // start with center
-    tmpX += maxX;
-    tmpY += maxY;
+    int8_t tmpX = maxX;
+    int8_t tmpY = maxY;
 
 
     // add offsets based on origin
@@ -371,6 +367,9 @@ STATIC_UNIT_TESTED void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x
     tmpX = tmpX / 2;
     tmpY = tmpY / 2;
 
+    // add offset
+    tmpX += osdConfig()->item[item].x;
+    tmpY += osdConfig()->item[item].y;
 
     // make sure to return valid x/y positions \in [0..max]
     *pos_x = constrain(tmpX, 0, maxX);

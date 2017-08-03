@@ -68,6 +68,7 @@ extern "C" {
     PG_REGISTER(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 0);
     PG_REGISTER(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 0);
     PG_REGISTER(pilotConfig_t, pilotConfig, PG_PILOT_CONFIG, 0);
+    PG_REGISTER(featureConfig_t, featureConfig, PG_FEATURE_CONFIG, 0);
 
     timeUs_t simulationTime = 0;
     batteryState_e simulationBatteryState;
@@ -96,7 +97,7 @@ void setDefaultSimulationState()
 
     // all items invisible
     for(int i=0; i<OSD_ITEM_COUNT; i++){
-        osdConfigMutable()->item_pos[i] &= ~(VISIBLE_FLAG);
+        osdConfigMutable()->item[i].flags &= ~(OSD_FLAG_VISIBLE);
     }
 }
 
@@ -190,6 +191,11 @@ TEST(OsdTest, TestInit)
     // this battery configuration (used for battery voltage elements)
     batteryConfigMutable()->vbatmincellvoltage = 33;
     batteryConfigMutable()->vbatmaxcellvoltage = 43;
+
+    // and
+    // osd feature is enabled
+    featureSet(FEATURE_OSD);
+    latchActiveFeatures();
 
     // when
     // OSD is initialised
@@ -588,8 +594,8 @@ TEST(OsdTest, TestFormatTimeString)
  */
 TEST(OsdTest, TestElementPositioning)
 {
-    const int highX = UNITTEST_DISPLAYPORT_COLS - 2;
-    const int highY = UNITTEST_DISPLAYPORT_ROWS - 2;
+    const int highX = UNITTEST_DISPLAYPORT_COLS - 1;
+    const int highY = UNITTEST_DISPLAYPORT_ROWS - 1;
     const int centreX = highX / 2;
     const int centreY = highY / 2;
 
@@ -599,10 +605,10 @@ TEST(OsdTest, TestElementPositioning)
 
     // when
     displayClearScreen(&testDisplayPort);
-    osdRefresh(simulationTime);
+    runForGivenTime(1e6);
 
     // expect
-    displayPortTestBufferSubstring(8, 1, "CRAFT_NAME");
+    displayPortTestBufferSubstring(8, 1, "   CRAFT_NAME   ");
 
     // given
     // south east anchoring
@@ -610,10 +616,10 @@ TEST(OsdTest, TestElementPositioning)
 
     // when
     displayClearScreen(&testDisplayPort);
-    osdRefresh(simulationTime);
+    runForGivenTime(1e6);
 
     // expect
-    displayPortTestBufferSubstring(highX - 8, highY - 2, "CRAFT_NAME");
+    displayPortTestBufferSubstring(highX - 8, highY - 2, "   CRAFT_NAME   ");
 
     // given
     // north east anchoring
@@ -621,10 +627,10 @@ TEST(OsdTest, TestElementPositioning)
 
     // when
     displayClearScreen(&testDisplayPort);
-    osdRefresh(simulationTime);
+    runForGivenTime(1e6);
 
     // expect
-    displayPortTestBufferSubstring(highX - 8, 4, "CRAFT_NAME");
+    displayPortTestBufferSubstring(highX - 8, 4, "   CRAFT_NAME   ");
 
     // given
     // south west anchoring
@@ -632,10 +638,10 @@ TEST(OsdTest, TestElementPositioning)
 
     // when
     displayClearScreen(&testDisplayPort);
-    osdRefresh(simulationTime);
+    runForGivenTime(1e6);
 
     // expect
-    displayPortTestBufferSubstring(6, highY - 2, "CRAFT_NAME");
+    displayPortTestBufferSubstring(6, highY - 2, "   CRAFT_NAME   ");
 
     // given
     // centre anchoring
@@ -643,11 +649,12 @@ TEST(OsdTest, TestElementPositioning)
 
     // when
     displayClearScreen(&testDisplayPort);
-    osdRefresh(simulationTime);
+    runForGivenTime(1e6);
 
     // expect
-    displayPortTestBufferSubstring(centreX + 1, centreY - 2, "CRAFT_NAME");
+    displayPortTestBufferSubstring(centreX + 1, centreY - 2, "   CRAFT_NAME   ");
 }
+
 
 /*
  * Tests the relative to abs position conversion
