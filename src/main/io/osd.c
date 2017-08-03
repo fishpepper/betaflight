@@ -31,7 +31,13 @@
 
 #include "platform.h"
 
-#ifdef OSD
+
+#ifdef USE_MAX7456
+#define DEFAULT_OSD_DEVICE OSD_DEVICE_MAX7456
+#else
+#define DEFAULT_OSD_DEVICE OSD_DEVICE_NONE
+#endif
+
 
 #include "blackbox/blackbox.h"
 #include "blackbox/blackbox_io.h"
@@ -308,7 +314,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex) {
         }
 
         // check for visibility
-        if (VISIBLE(osdConfig()->item_pos[elementIndex])) {
+        if (osdConfig()->item[elementIndex].flags & OSD_FLAG_VISIBLE) {
             // found next visible item
             break;
         }
@@ -321,12 +327,73 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex) {
     return elementIndex;
 }
 
+// this will convert from relative positioning (i.e. measured from center pos)
+// to absolute positioning (based on display height and width)
+STATIC_UNIT_TESTED void osdConvertToAbsolutePosition(uint8_t item, int8_t *pos_x, int8_t *pos_y) {
+    // output display dimensions
+    uint8_t maxX  = osdDisplayPort->colCount - 1;
+    uint8_t maxY = osdDisplayPort->rowCount - 1;
+
+    // x/y position (note: might need origin offset, see below)
+    int8_t tmpX = osdConfig()->item[item].x;
+    int8_t tmpY = osdConfig()->item[item].y;
+
+    // fetch origin positio
+    uint8_t origin = (osdConfig()->item[item].flags & OSD_FLAG_ORIGIN_MASK);
+
+    // start with center
+    tmpX += maxX;
+    tmpY += maxY;
+
+
+    // add offsets based on origin
+    if (origin & OSD_FLAG_ORIGIN_E) {
+        // move east
+        tmpX += maxX;
+    }
+
+    if (origin & OSD_FLAG_ORIGIN_W) {
+        // move west
+        tmpX -= maxX;
+    }
+
+    if (origin & OSD_FLAG_ORIGIN_N) {
+        // move north
+        tmpY -= maxY;
+    }
+
+    if (origin & OSD_FLAG_ORIGIN_S) {
+        // move south
+        tmpY += maxY;
+    }
+
+    // rescale
+    tmpX = tmpX / 2;
+    tmpY = tmpY / 2;
+
+
+    // make sure to return valid x/y positions \in [0..max]
+    *pos_x = constrain(tmpX, 0, maxX);
+    *pos_y = constrain(tmpY, 0, maxY);
+}
+
 static void osdDrawSingleElement(uint8_t item)
 {
-    uint8_t elemPosX = OSD_X(osdConfig()->item_pos[item]);
-    uint8_t elemPosY = OSD_Y(osdConfig()->item_pos[item]);
-    uint8_t elemOffsetX = 0;
+    if (!(osdConfig()->item[item].flags & OSD_FLAG_VISIBLE) || BLINK(item)) {
+        return;
+    }
+
+    /* Hide OSD when OSDSW mode is active */
+    if (IS_RC_MODE_ACTIVE(BOXOSD))
+      return;
+
+
     char buff[OSD_ELEMENT_BUFFER_LENGTH];
+    int8_t elemPosX;
+    int8_t elemPosY;
+
+    // fetch absolute positions
+    osdConvertToAbsolutePosition(item, &elemPosX, &elemPosY);
 
     if (item == OSD_ITEM_COUNT) {
         // no osd items are visible
@@ -536,11 +603,6 @@ static void osdDrawSingleElement(uint8_t item)
 #endif
 
     case OSD_CROSSHAIRS:
-        elemPosX = 14 - 1; // Offset for 1 char to the left
-        elemPosY = 6;
-        if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-            ++elemPosY;
-        }
         buff[0] = SYM_AH_CENTER_LINE;
         buff[1] = SYM_AH_CENTER;
         buff[2] = SYM_AH_CENTER_LINE_RIGHT;
@@ -549,15 +611,8 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            elemPosX = 14;
-            elemPosY = 6 - 4; // Top center of the AH area
-
             const int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
             int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
-
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-                ++elemPosY;
-            }
 
             // Convert pitchAngle to y compensation value
             pitchAngle = (pitchAngle / 8) - 41; // 41 = 4 * 9 + 5
@@ -568,7 +623,7 @@ static void osdDrawSingleElement(uint8_t item)
             }
 
             // if not visible: abort after clearing here
-            if (!VISIBLE(osdConfig()->item_pos[item])){
+            if (!(osdConfig()->item[item].flags & OSD_FLAG_VISIBLE)){
                 return;
             }
 
@@ -586,18 +641,11 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_HORIZON_SIDEBARS:
         {
-            elemPosX = 14;
-            elemPosY = 6;
-
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-                ++elemPosY;
-            }
-
             // Draw AH sides
             const int8_t hudwidth = AH_SIDEBAR_WIDTH_POS;
             const int8_t hudheight = AH_SIDEBAR_HEIGHT_POS;
             for (int y = -hudheight; y <= hudheight; y++) {
-                if (!VISIBLE(osdConfig()->item_pos[item])){
+                if (!(osdConfig()->item[item].flags & OSD_FLAG_VISIBLE)){
                     // clear sidebars
                     displayWriteChar(osdDisplayPort, elemPosX - hudwidth, elemPosY + y, ' ');
                     displayWriteChar(osdDisplayPort, elemPosX + hudwidth, elemPosY + y, ' ');
@@ -609,7 +657,7 @@ static void osdDrawSingleElement(uint8_t item)
             }
 
             // AH level indicators
-            if (!VISIBLE(osdConfig()->item_pos[item])){
+            if (!(osdConfig()->item[item].flags & OSD_FLAG_VISIBLE)){
                 // not visible -> clear
                 displayWriteChar(osdDisplayPort, elemPosX - hudwidth + 1, elemPosY, ' ');
                 displayWriteChar(osdDisplayPort, elemPosX + hudwidth - 1, elemPosY, ' ');
@@ -784,58 +832,67 @@ static void osdDrawSingleElement(uint8_t item)
         while (*bptr) {
             *bptr++ = ' ';
         }
-    }
-
+    }       
+            
     // send prepared string to display at given position
-    displayWrite(osdDisplayPort, elemPosX + elemOffsetX, elemPosY, buff);
-
+    displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
 }
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
-    osdConfig->item_pos[OSD_RSSI_VALUE]         = OSD_POS(8, 1)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_MAIN_BATT_VOLTAGE]  = OSD_POS(12, 1)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_CROSSHAIRS]         = OSD_POS(8, 6)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6)   | (sensors(SENSOR_ACC)?VISIBLE_FLAG:0);
-    osdConfig->item_pos[OSD_HORIZON_SIDEBARS]   = OSD_POS(8, 6)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ITEM_TIMER_1]       = OSD_POS(22, 1)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ITEM_TIMER_2]       = OSD_POS(1, 1)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_FLYMODE]            = OSD_POS(13, 10) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_CRAFT_NAME]         = OSD_POS(10, 11) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_THROTTLE_POS]       = OSD_POS(1, 7)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_VTX_CHANNEL]        = OSD_POS(25, 11) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_CURRENT_DRAW]       = OSD_POS(1, 12)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_MAH_DRAWN]          = OSD_POS(1, 11)  | VISIBLE_FLAG;
-#ifdef GPS
-    osdConfig->item_pos[OSD_GPS_SPEED]          = OSD_POS(26, 6)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_GPS_SATS]           = OSD_POS(19, 1)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_GPS_LAT]            = OSD_POS(1, 2)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_GPS_LON]            = OSD_POS(18, 2)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_HOME_DIST]          = OSD_POS(15, 9)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_HOME_DIR]           = OSD_POS(14, 9)  | VISIBLE_FLAG;
-#endif
+    // default positions are attached to origin points
+    // this way the ui looks similar no matter what the current screen resolution is
+    OSD_INIT(osdConfig, OSD_DEBUG            ,   1,  0, OSD_FLAG_ORIGIN_NW | OSD_FLAG_VISIBLE);
 
-    osdConfig->item_pos[OSD_ALTITUDE]           = OSD_POS(23, 7)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ROLL_PIDS]          = OSD_POS(7, 13)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_PITCH_PIDS]         = OSD_POS(7, 14)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_YAW_PIDS]           = OSD_POS(7, 15)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_POWER]              = OSD_POS(1, 10)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_PIDRATE_PROFILE]    = OSD_POS(25, 10) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_WARNINGS]           = OSD_POS(9, 10)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_AVG_CELL_VOLTAGE]   = OSD_POS(12, 2)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_DEBUG]              = OSD_POS(1, 0)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_PITCH_ANGLE]        = OSD_POS(1, 8)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ROLL_ANGLE]         = OSD_POS(1, 9)   | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_COMPASS_BAR]        = OSD_POS(10, 8)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_MAIN_BATT_USAGE]    = OSD_POS(8, 12)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_DISARMED]           = OSD_POS(10, 4)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_NUMERICAL_HEADING]  = OSD_POS(23, 9)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_NUMERICAL_VARIO]    = OSD_POS(23, 8)  | VISIBLE_FLAG;
+    OSD_INIT(osdConfig, OSD_RSSI_VALUE       ,  -6,  1, OSD_FLAG_ORIGIN_N | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_MAIN_BATT_VOLTAGE,   2,  1, OSD_FLAG_ORIGIN_N | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_AVG_CELL_VOLTAGE ,   2,  2, OSD_FLAG_ORIGIN_N | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_DISARMED         ,   4,  4, OSD_FLAG_ORIGIN_N | OSD_FLAG_VISIBLE);
 
-#ifdef USE_ESC_SENSOR
-    osdConfig->item_pos[OSD_ESC_TMP]            = OSD_POS(18, 2)  | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_ESC_RPM]            = OSD_POS(19, 2)  | VISIBLE_FLAG;
-#endif
+    OSD_INIT(osdConfig, OSD_ESC_TMP          ,   4,  2, OSD_FLAG_ORIGIN_N | ESC_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_ESC_RPM          ,   5,  2, OSD_FLAG_ORIGIN_N | ESC_DEFAULT_VISIBILITY);
+
+    OSD_INIT(osdConfig, OSD_GPS_SPEED        ,  -3, -1, OSD_FLAG_ORIGIN_E | GPS_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_GPS_SATS         ,   5,  1, OSD_FLAG_ORIGIN_N | GPS_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_GPS_LAT          ,   1,  2, OSD_FLAG_ORIGIN_NW | GPS_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_GPS_LON          ,   4,  2, OSD_FLAG_ORIGIN_N | GPS_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_HOME_DIST        ,   1,  2, OSD_FLAG_ORIGIN_C | GPS_DEFAULT_VISIBILITY);
+    OSD_INIT(osdConfig, OSD_HOME_DIR         ,   0,  2, OSD_FLAG_ORIGIN_C | GPS_DEFAULT_VISIBILITY);
+
+    OSD_INIT(osdConfig, OSD_ITEM_TIMER_1     ,  -7,  1, OSD_FLAG_ORIGIN_NE | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_ITEM_TIMER_2     ,   1,  1, OSD_FLAG_ORIGIN_NW | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_ALTITUDE         ,  -6,  0, OSD_FLAG_ORIGIN_E | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_NUMERICAL_HEADING,  -6,  2, OSD_FLAG_ORIGIN_E | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_NUMERICAL_VARIO  ,  -6,  1, OSD_FLAG_ORIGIN_E | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_VTX_CHANNEL      ,  -4, -4, OSD_FLAG_ORIGIN_SE | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_PIDRATE_PROFILE  ,  -4, -5, OSD_FLAG_ORIGIN_SE | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_FLYMODE          ,  -1, -5, OSD_FLAG_ORIGIN_S | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_CRAFT_NAME       ,  -4, -4, OSD_FLAG_ORIGIN_S | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_POWER            ,   1, -5, OSD_FLAG_ORIGIN_S | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_MAIN_BATT_USAGE  ,  -6, -3, OSD_FLAG_ORIGIN_S | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_CURRENT_DRAW     ,   1,  0, OSD_FLAG_ORIGIN_SW | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_MAH_DRAWN        ,   1, -1, OSD_FLAG_ORIGIN_SW | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_ROLL_PIDS        ,   7,  -2, OSD_FLAG_ORIGIN_SW | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_PITCH_PIDS       ,   7,  -1, OSD_FLAG_ORIGIN_SW | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_YAW_PIDS         ,   5,  -0, OSD_FLAG_ORIGIN_SW | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_PITCH_ANGLE      ,   1,  1, OSD_FLAG_ORIGIN_W | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_ROLL_ANGLE       ,   1,  2, OSD_FLAG_ORIGIN_W | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_THROTTLE_POS     ,   1,  0, OSD_FLAG_ORIGIN_W | OSD_FLAG_VISIBLE);
+
+    OSD_INIT(osdConfig, OSD_WARNINGS         ,  -5,  3, OSD_FLAG_ORIGIN_C | OSD_FLAG_VISIBLE);
+    OSD_INIT(osdConfig, OSD_COMPASS_BAR      ,  -4,  1, OSD_FLAG_ORIGIN_C | OSD_FLAG_VISIBLE);
+
+    // Crosshair uses 3 chars, from center offset 1 to the left
+    OSD_INIT(osdConfig, OSD_CROSSHAIRS       , -1,  0, OSD_FLAG_ORIGIN_C | OSD_FLAG_VISIBLE);
+    // AH top center of region is 4 to the left
+    OSD_INIT(osdConfig, OSD_ARTIFICIAL_HORIZON ,  0, -4, OSD_FLAG_ORIGIN_C | HORIZON_DEFAULT_VISIBILITY);
+    // Horizon is centered
+    OSD_INIT(osdConfig, OSD_HORIZON_SIDEBARS ,  0,  0, OSD_FLAG_ORIGIN_C | HORIZON_DEFAULT_VISIBILITY);
 
     osdConfig->enabled_stats[OSD_STAT_MAX_SPEED]       = true;
     osdConfig->enabled_stats[OSD_STAT_MIN_BATTERY]     = true;
@@ -858,6 +915,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm  = 2200;
     osdConfig->alt_alarm  = 100; // meters or feet depend on configuration
+
+    osdConfig->device = DEFAULT_OSD_DEVICE;
 }
 
 static void osdDrawLogo(int x, int y)
@@ -874,10 +933,12 @@ static void osdDrawLogo(int x, int y)
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
-    if (!osdDisplayPortToUse)
+    if ((!feature(FEATURE_OSD)) || (!osdDisplayPortToUse)) {
+        // no osd hw active
         return;
+    }
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+    //BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
 
     osdDisplayPort = osdDisplayPortToUse;
 #ifdef CMS
@@ -1224,6 +1285,13 @@ STATIC_UNIT_TESTED void osdRefresh(timeUs_t currentTimeUs)
  */
 void osdUpdate(timeUs_t currentTimeUs)
 {
+    //static uint32_t counter = 0;
+
+    if (osdConfig()->device == OSD_DEVICE_NONE) {
+        // osd not active -> return
+        return;
+    }
+
     if (isBeeperOn()) {
         showVisualBeeper = true;
     }
@@ -1256,4 +1324,3 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 }
-#endif // OSD

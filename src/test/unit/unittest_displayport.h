@@ -130,8 +130,8 @@ static const displayPortVTable_t testDisplayPortVTable = {
 displayPort_t *displayPortTestInit(void)
 {
     displayInit(&testDisplayPort, &testDisplayPortVTable);
-    testDisplayPort.rows = UNITTEST_DISPLAYPORT_ROWS;
-    testDisplayPort.cols = UNITTEST_DISPLAYPORT_COLS;
+    testDisplayPort.rowCount = UNITTEST_DISPLAYPORT_ROWS;
+    testDisplayPort.colCount = UNITTEST_DISPLAYPORT_COLS;
     return &testDisplayPort;
 }
 
@@ -168,10 +168,10 @@ void displayPortTestBufferSubstring(int x, int y, const char * expectedFormat, .
 
     bool success = true;
     for (size_t i = 0; i < strlen(expected); i++) {
-        if (expected[i] != testDisplayPortBuffer[(y * testDisplayPort.cols) + x + i]){
+        if (expected[i] != testDisplayPortBuffer[(y * testDisplayPort.colCount) + x + i]){
             success = false;
         }
-        EXPECT_EQ(expected[i], testDisplayPortBuffer[(y * testDisplayPort.cols) + x + i]);
+        EXPECT_EQ(expected[i], testDisplayPortBuffer[(y * testDisplayPort.colCount) + x + i]);
     }
     if (!success){
         char fbuf[256];

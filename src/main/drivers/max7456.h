@@ -31,8 +31,11 @@
 #define VIDEO_BUFFER_CHARS_PAL    480
 #define VIDEO_LINES_NTSC          13
 #define VIDEO_LINES_PAL           16
+#define VIDEO_COLS                30
 
-extern uint16_t maxScreenSize;
+//extern uint16_t maxScreenSize;
+extern uint16_t screenSizeRows;
+extern uint16_t screenSizeCols;
 
 struct vcdProfile_s;
 void    max7456HardwareReset(void);

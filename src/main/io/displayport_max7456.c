@@ -54,10 +54,8 @@ static int grab(displayPort_t *displayPort)
 {
     // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
-#ifdef OSD
     osdResetAlarms();
     resumeRefreshAt = 0;
-#endif
 
     return 0;
 }
@@ -89,12 +87,6 @@ static int drawScreen(displayPort_t *displayPort)
     return 0;
 }
 
-static int screenSize(const displayPort_t *displayPort)
-{
-    UNUSED(displayPort);
-    return maxScreenSize;
-}
-
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
 {
     UNUSED(displayPort);
@@ -121,8 +113,8 @@ static void resync(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     max7456RefreshAll();
-    displayPort->rows = max7456GetRowsCount() + displayPortProfileMax7456()->rowAdjust;
-    displayPort->cols = 30 + displayPortProfileMax7456()->colAdjust;
+    displayPort->rowCount = max7456GetRowsCount() + displayPortProfileMax7456()->rowAdjust;
+    displayPort->colCount = 30 + displayPortProfileMax7456()->colAdjust;
 }
 
 static int heartbeat(displayPort_t *displayPort)
@@ -142,7 +134,6 @@ static const displayPortVTable_t max7456VTable = {
     .release = release,
     .clearScreen = clearScreen,
     .drawScreen = drawScreen,
-    .screenSize = screenSize,
     .writeString = writeString,
     .writeChar = writeChar,
     .isTransferInProgress = isTransferInProgress,
