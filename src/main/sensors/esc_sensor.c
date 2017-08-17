@@ -189,7 +189,9 @@ static void escSensorDataReceive(uint16_t c)
         return;
     }
 
-    buffer[bufferPosition++] = (uint8_t)c;
+    if (bufferPosition < TELEMETRY_FRAME_SIZE) {
+	    buffer[bufferPosition++] = (uint8_t)c;
+    }
 }
 
 bool escSensorInit(void)
