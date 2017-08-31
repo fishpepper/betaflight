@@ -195,6 +195,8 @@ typedef struct osdConfig_s {
     uint8_t ahMaxRoll;
 
     osd_device_e device;
+
+    uint8_t charset;
 } osdConfig_t;
 
 
