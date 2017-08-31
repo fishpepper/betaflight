@@ -910,7 +910,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->device = DEFAULT_OSD_DEVICE;
 
-    osdConfig->charset = OPENTCO_OSD_CHARSET_0_WITH_BF_LOGO;
+    osdConfig->charset = 0;
 }
 
 static void osdDrawLogo(int x, int y)

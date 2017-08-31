@@ -256,6 +256,9 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
         opentcoWriteRegisterUint16(device, OPENTCO_OSD_REGISTER_VIDEO_FORMAT, video_system);
     }
 
+    // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
+    opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
+
     // try to enable all enabled osd features
     opentcoOSDQuerySupportedFeatures();
 
