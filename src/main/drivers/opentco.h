@@ -67,6 +67,8 @@ typedef enum {
 #define OPENTCO_OSD_REGISTER_VIDEO_FORMAT            0x02  // R/W
 #define OPENTCO_OSD_REGISTER_BRIGHTNESS_BLACK        0x03  // R/W
 #define OPENTCO_OSD_REGISTER_BRIGHTNESS_WHITE        0x04  // R/W
+#define OPENTCO_OSD_REGISTER_SCREEN_SIZE             0x05  // R
+#define OPENTCO_OSD_REGISTER_CHARSET                 0x06  // R/W
 
 #define OPENTCO_OSD_COMMAND_SPECIAL_SUB_STICKSTATUS  0x00
 #define OPENTCO_OSD_COMMAND_SPECIAL_SUB_SPECTRUM     0x01
@@ -83,6 +85,13 @@ typedef enum {
     OPENTCO_OSD_FEATURE_RENDER_CROSSHAIR      = (1 << 12)
     // 13..15
 } opentcoOSDFeatures_e;
+
+typedef enum {
+    OPENTCO_OSD_CHARSET_BF_STANDARD           = 0x01,
+    OPENTCO_OSD_CHARSET_CF_STANDARD           = 0x02,
+    OPENTCO_OSD_CHARSET_INAV_STANDARD         = 0x03,
+    OPENTCO_OSD_CHARSET_KISSFC_STANDARD       = 0x04
+} opentcoOSDCharsets_e;
 
 
 // VTX DEVICES

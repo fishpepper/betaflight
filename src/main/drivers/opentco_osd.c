@@ -147,6 +147,9 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
         opentcoWriteRegisterUint16(device, OPENTCO_OSD_REGISTER_VIDEO_FORMAT, video_system);
     }
 
+    // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
+    opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
+
     // try to enable all enabled osd features
     opentcoOSDQuerySupportedFeatures();
 
@@ -364,13 +367,24 @@ int opentcoOSDHeartbeat(displayPort_t *displayPort){
 
 void opentcoOSDResync(displayPort_t *displayPort)
 {
-    if (video_system == VIDEO_SYSTEM_PAL) {
-        displayPort->rowCount = OPENTCO_OSD_VIDEO_LINES_PAL;
-    } else {
-        displayPort->rowCount = OPENTCO_OSD_VIDEO_LINES_NTSC;
+    // query the screen size from osd device
+    uint16_t screenSize = 0;
+    if (!opentcoReadRegister(device, OPENTCO_OSD_REGISTER_SCREEN_SIZE, &screenSize)) {
+        if (video_system == VIDEO_SYSTEM_PAL) {
+            displayPort->rowCount = OPENTCO_OSD_VIDEO_LINES_PAL;
+        } else {
+            displayPort->rowCount = OPENTCO_OSD_VIDEO_LINES_NTSC;
+        }
+    
+        // if read failed, just use the fixed colCount
+        displayPort->colCount = OPENTCO_OSD_VIDEO_COLS;
+        return ;
     }
 
-    displayPort->colCount = OPENTCO_OSD_VIDEO_COLS;
+    uint8_t colCount = screenSize & 0xFF;
+    uint8_t rowCount = (screenSize & 0xFF00) >> 4;
+    displayPort->rowCount = rowCount;
+    displayPort->colCount = colCount;
 }
 
 uint32_t opentcoOSDTxBytesFree(const displayPort_t *displayPort)
