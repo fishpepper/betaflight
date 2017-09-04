@@ -88,14 +88,6 @@ typedef enum {
     // 13..15
 } opentcoOSDFeatures_e;
 
-typedef enum {
-    OPENTCO_OSD_CHARSET_0_WITH_BF_LOGO           = 0x00,
-    OPENTCO_OSD_CHARSET_1_WITH_CF_LOGO           = 0x01,
-    OPENTCO_OSD_CHARSET_2_WITH_INAV_LOGO         = 0x02,
-    OPENTCO_OSD_CHARSET_4_WITH_KISSFC_LOGO       = 0x03
-} opentcoOSDCharsets_e;
-
-
 // VTX DEVICES
 #define OPENTCO_VTX_COMMAND_REGISTER_ACCESS          OPENTCO_GENERIC_COMMAND_REGISTER_ACCESS
 #define OPENTCO_VTX_REGISTER_STATUS                  0x00  // R/W: B0 = enable, B1 = pitmode
