@@ -257,7 +257,8 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
     }
 
     // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
-    opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
+    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_CHARSET)
+        opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
 
     // try to enable all enabled osd features
     opentcoOSDQuerySupportedFeatures();
