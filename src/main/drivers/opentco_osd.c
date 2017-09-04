@@ -26,6 +26,7 @@
 
 #include "common/maths.h"
 #include "common/time.h"
+#include "common/crc.h"
 #include "io/osd.h"
 #include "io/displayport_opentco.h"
 #include "fc/rc_controls.h"
@@ -41,6 +42,8 @@ static opentcoDevice_t OSDDevice;
 static opentcoDevice_t *device = &OSDDevice;
 
 static uint8_t  video_system;
+opentco_osd_charset_t opentcoOSDCharsets[OPENTCO_OSD_MAX_CHARSETS];
+uint8_t supportedCharsetCount;
 
 //static void opentcoOSDSetRegister(uint8_t reg, uint16_t value);
 void opentcoOSDRefreshAll(void);
@@ -119,6 +122,114 @@ static void opentcoOSDQuerySupportedFeatures()
     displayPortProfileMutable()->enabledFeatures &=  displayFeature;
 }
 
+static void opentcoOSDResetCharsetEnumerator()
+{
+    // send packet with with command(OPENTCO_OSD_COMMAND_RESET_CHARSET_ENUM) 
+    // and empty body to reset the charset enumerator in OSD
+    opentcoInitializeFrame(device, OPENTCO_OSD_COMMAND_RESET_CHARSET_ENUM);
+    opentcoSendFrame(device);
+}
+
+static bool opentcoDecodeCharsetResponse(opentcoDevice_t *device, uint8_t *charsetID, char *outCharsetName, bool *outHasMore)
+{
+    UNUSED(device);
+
+    // prepare crc calc
+    uint8_t crc = crc8_dvb_s2(0, OPENTCO_PROTOCOL_HEADER);
+
+    // fetch data (serial buffer already contains enough bytes)
+    uint8_t data[14];
+    for(int i = 0; i < 14; i++) {
+        uint8_t rx = serialRead(device->serialPort);
+        data[i] = rx;
+        crc = crc8_dvb_s2(crc, rx);
+    }
+
+    // check crc
+    if (crc != 0) return false;
+
+    // check device and command
+    uint8_t valid_devcmd = ((OPENTCO_DEVICE_RESPONSE | device->id) << 4) | OPENTCO_OSD_COMMAND_GET_NEXT_CHARSET;
+    if (data[0] != valid_devcmd) return false;
+
+    // get the charset info
+    if (charsetID) *charsetID = data[1];
+    if (outCharsetName) memcpy(outCharsetName, data + 2, OPENTCO_OSD_CHARSET_NAME_LENGTH);
+    if (outHasMore) *outHasMore = data[12];
+
+    return true;
+}
+
+static bool opentcoOSDGetNextCharset(uint8_t *outCharsetID, char *outCharsetName, bool *outHasMore)
+{
+    uint32_t max_retries = 3;
+    while (max_retries--) {
+        // send packet with with command(OPENTCO_OSD_COMMAND_GET_NEXT_CHARSET) 
+        // and empty body to get next the charset info
+        opentcoInitializeFrame(device, OPENTCO_OSD_COMMAND_GET_NEXT_CHARSET);
+        opentcoSendFrame(device);
+
+        // wait 100ms for reply
+        timeMs_t timeout = millis() + 100;
+
+        bool header_received = false;
+        while (millis() < timeout) {
+            if (!header_received) {
+                if (serialRxBytesWaiting(device->serialPort) > 0) {
+                    uint8_t rx = serialRead(device->serialPort);
+                    if (rx == OPENTCO_PROTOCOL_HEADER) {
+                        header_received = true;
+                    }
+                }
+            } else {
+                // header found, now wait for the remaining bytes to arrive
+                if (serialRxBytesWaiting(device->serialPort) >= 14) {
+                    // try to decode this packet
+                    if (!opentcoDecodeCharsetResponse(device, outCharsetID, outCharsetName, outHasMore)) {
+                        // received broken / bad response
+                        break;
+                    }
+
+                    // received valid data
+                    return true;
+                }
+            }
+        }
+    }
+
+    // failed n times
+    return false;
+}
+
+static void opentcoOSDQuerySupportedCharsets()
+{
+    bool hasMore = false;
+    int i = 0;
+
+    // reset the charset enumerator in the OSD
+    opentcoOSDResetCharsetEnumerator();
+    
+    // initialize the globale vars
+    memset(opentcoOSDCharsets, 0, sizeof(opentcoOSDCharsets));
+    supportedCharsetCount = 0;
+
+    // start getting the charset
+    opentco_osd_charset_t *current = &(opentcoOSDCharsets[0]);
+    while (opentcoOSDGetNextCharset(&(current->id), current->name, &hasMore)) {
+        i++;
+
+        if (!hasMore) // if no more charset, just break the loop
+            break;
+
+        if (i >= OPENTCO_OSD_MAX_CHARSETS)
+            break;
+
+        current = &(opentcoOSDCharsets[i]);
+    }
+    
+    supportedCharsetCount = i;
+}
+
 bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
 {
     // Setup values to write to registers
@@ -148,12 +259,16 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
         opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_VIDEO_FORMAT, video_system);
     }
 
-    // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
-    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_CHARSET)
-        opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
-
     // try to enable all enabled osd features
     opentcoOSDQuerySupportedFeatures();
+
+    // get all supported charsets
+    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_CHARSET) {
+        opentcoOSDQuerySupportedCharsets();
+
+        // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
+        opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
+    }
 
     // fill whole screen on device with ' '
     opentcoOSDClearScreen(NULL);
