@@ -110,7 +110,8 @@ static void opentcoOSDQuerySupportedFeatures()
     if (opentcoFeatures & OPENTCO_OSD_FEATURE_RENDER_PILOTLOGO) displayFeature |= DISPLAY_FEATURE_RENDER_PILOTLOGO;
     if (opentcoFeatures & OPENTCO_OSD_FEATURE_RENDER_SPECTRUM) displayFeature |= DISPLAY_FEATURE_RENDER_SPECTRUM;
     if (opentcoFeatures & OPENTCO_OSD_FEATURE_RENDER_STICKS) displayFeature |= DISPLAY_FEATURE_RENDER_STICKS;
-
+    if (opentcoFeatures & OPENTCO_OSD_FEATURE_CHARSET) displayFeature |= DISPLAY_FEATURE_CHARSET;
+    
     // store
     displayPortProfileMutable()->supportedFeatures = displayFeature;
 
@@ -148,7 +149,8 @@ bool opentcoOSDInit(const vcdProfile_t *pVcdProfile)
     }
 
     // init the charset for osd device, if the device not suuport this charset, these is nothing will happen
-    opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
+    if (displayPortProfile()->enabledFeatures & DISPLAY_FEATURE_CHARSET)
+        opentcoWriteRegister(device, OPENTCO_OSD_REGISTER_CHARSET, osdConfig()->charset);
 
     // try to enable all enabled osd features
     opentcoOSDQuerySupportedFeatures();
@@ -294,6 +296,7 @@ static void opentcoOSDSendEnabledFeatures()
     if (displayFeature & DISPLAY_FEATURE_RENDER_PILOTLOGO) opentcoFeature |= OPENTCO_OSD_FEATURE_RENDER_PILOTLOGO;
     if (displayFeature & DISPLAY_FEATURE_RENDER_SPECTRUM) opentcoFeature |= OPENTCO_OSD_FEATURE_RENDER_SPECTRUM;
     if (displayFeature & DISPLAY_FEATURE_RENDER_STICKS) opentcoFeature |= OPENTCO_OSD_FEATURE_RENDER_STICKS;
+    if (displayFeature & DISPLAY_FEATURE_CHARSET) opentcoFeature |= OPENTCO_OSD_FEATURE_CHARSET;
 
     // activate
     opentcoOSDSetRegister(OPENTCO_OSD_REGISTER_STATUS, opentcoFeature);
