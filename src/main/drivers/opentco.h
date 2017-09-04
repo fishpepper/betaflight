@@ -76,7 +76,8 @@ typedef enum {
     OPENTCO_OSD_FEATURE_ENABLE                = (1 << 0),
     OPENTCO_OSD_FEATURE_INVERT                = (1 << 1),
     OPENTCO_OSD_FEATURE_BRIGHTNESS            = (1 << 2),
-    // 3..7
+    OPENTCO_OSD_FEATURE_CHARSET               = (1 << 3),
+    // 4..7
     OPENTCO_OSD_FEATURE_RENDER_LOGO           = (1 << 8),
     OPENTCO_OSD_FEATURE_RENDER_PILOTLOGO      = (1 << 9),
     OPENTCO_OSD_FEATURE_RENDER_STICKS         = (1 << 10),
@@ -86,10 +87,10 @@ typedef enum {
 } opentcoOSDFeatures_e;
 
 typedef enum {
-    OPENTCO_OSD_CHARSET_BF_STANDARD           = 0x01,
-    OPENTCO_OSD_CHARSET_CF_STANDARD           = 0x02,
-    OPENTCO_OSD_CHARSET_INAV_STANDARD         = 0x03,
-    OPENTCO_OSD_CHARSET_KISSFC_STANDARD       = 0x04
+    OPENTCO_OSD_CHARSET_0_WITH_BF_LOGO           = 0x00,
+    OPENTCO_OSD_CHARSET_1_WITH_CF_LOGO           = 0x01,
+    OPENTCO_OSD_CHARSET_2_WITH_INAV_LOGO         = 0x02,
+    OPENTCO_OSD_CHARSET_4_WITH_KISSFC_LOGO       = 0x03
 } opentcoOSDCharsets_e;
 
 
