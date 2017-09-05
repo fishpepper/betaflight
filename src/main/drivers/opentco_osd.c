@@ -130,7 +130,7 @@ static void opentcoOSDResetCharsetEnumerator()
     opentcoSendFrame(device);
 }
 
-static bool opentcoDecodeCharsetResponse(opentcoDevice_t *device, uint8_t *charsetID, char *outCharsetName, bool *outHasMore)
+static bool opentcoOSDDecodeCharsetResponse(opentcoDevice_t *device, uint8_t *charsetID, char *outCharsetName, bool *outHasMore)
 {
     UNUSED(device);
 
@@ -185,7 +185,7 @@ static bool opentcoOSDGetNextCharset(uint8_t *outCharsetID, char *outCharsetName
                 // header found, now wait for the remaining bytes to arrive
                 if (serialRxBytesWaiting(device->serialPort) >= 14) {
                     // try to decode this packet
-                    if (!opentcoDecodeCharsetResponse(device, outCharsetID, outCharsetName, outHasMore)) {
+                    if (!opentcoOSDDecodeCharsetResponse(device, outCharsetID, outCharsetName, outHasMore)) {
                         // received broken / bad response
                         break;
                     }
@@ -218,10 +218,7 @@ static void opentcoOSDQuerySupportedCharsets()
     while (opentcoOSDGetNextCharset(&(current->id), current->name, &hasMore)) {
         i++;
 
-        if (!hasMore) // if no more charset, just break the loop
-            break;
-
-        if (i >= OPENTCO_OSD_MAX_CHARSETS)
+        if (!hasMore || i >= OPENTCO_OSD_MAX_CHARSETS) // if no more charset, just break the loop
             break;
 
         current = &(opentcoOSDCharsets[i]);
