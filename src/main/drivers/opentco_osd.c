@@ -500,7 +500,7 @@ void opentcoOSDResync(displayPort_t *displayPort)
     }
 
     uint8_t colCount = screenSize & 0xFF;
-    uint8_t rowCount = (screenSize & 0xFF00) >> 4;
+    uint8_t rowCount = (screenSize & 0xFF00) >> 8;
     displayPort->rowCount = rowCount;
     displayPort->colCount = colCount;
 }
