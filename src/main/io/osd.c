@@ -63,6 +63,7 @@
 #include "drivers/max7456_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
+#include "drivers/opentco.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -908,6 +909,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->ahMaxRoll = 40; // 40 degrees
 
     osdConfig->device = DEFAULT_OSD_DEVICE;
+
+    osdConfig->charset = OPENTCO_OSD_CHARSET_0_WITH_BF_LOGO;
 }
 
 static void osdDrawLogo(int x, int y)
