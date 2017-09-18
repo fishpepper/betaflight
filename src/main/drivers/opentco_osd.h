@@ -33,6 +33,16 @@
 
 #define OPENTCO_OSD_CYCLETIME_US         (1000000/25)  // 25 Hz
 
+#define OPENTCO_OSD_CHARSET_NAME_LENGTH        10
+#define OPENTCO_OSD_MAX_CHARSETS               20
+
+typedef struct {
+    uint8_t id;
+    char name[OPENTCO_OSD_CHARSET_NAME_LENGTH];
+} opentco_osd_charset_t;
+
+extern opentco_osd_charset_t opentcoOSDCharsets[OPENTCO_OSD_MAX_CHARSETS];
+extern uint8_t supportedCharsetCount;
 
 int opentcoOSDGrab(displayPort_t * displayPort);
 int opentcoOSDRelease(displayPort_t *displayPort);
